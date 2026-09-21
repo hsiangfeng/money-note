@@ -1,0 +1,160 @@
+# 技術債待辦清單
+
+> 盤點日期：2026-09-19（對應 day-24 的程式碼狀態）
+> 原始盤點：[plans/07-技術債盤點.md](./plans/07-技術債盤點.md)
+
+`07-技術債盤點.md` 是盤點當下的快照，存檔後不再更動；**後續的進度只更新這一份。**
+30 條裡**已完成 3 條**（第 2、20 條，2026-09-20；第 1 條，2026-09-21），其餘未處理。順序不代表要照著做。
+
+**嚴重程度**
+
+- **高**：現在就是錯的，或下次動手一定會踩到
+- **中**：目前沒壞，但會誤導人，或讓錯誤不容易被發現
+- **低**：整潔度與一致性問題
+
+**建議先處理的一條：** 第 3 條（commit skill 跟 CLAUDE.md 互相打架）。
+
+---
+
+## 一、跟 CLAUDE.md／既有文件對不上
+
+- [x] **1.【高】`formatAmount` 少了 `$`，`npm test` 目前有 3 條紅燈**（2026-09-21 完成）
+      **處理結果：** `src/utils/format.js:13` 補回錢字號，改成 `` `$${amountFormatter.format(amount)}` ``。`npm test` 57 條全過，`npm run build` 通過。頁首總額、流水明細、統計明細三處的金額都恢復成 `$1,200` 這種寫法。
+      `src/utils/format.js:12-14` 回傳的是 `` `${amountFormatter.format(amount)}` ``，但同一個函式的註解寫 `1200 → "$1,200"`，SPEC 5.1 也寫「前面加 `$`」，5.4 的空狀態要顯示 `$0`。`format.test.js` 裡 formatAmount 的 3 條測試都失敗。day-22 的版本還是 `` `$${…}` ``，所以是 day-23 之後才掉的。結果是頁首總額、明細、統計三個地方的金額都沒有錢字號。
+      → 建議：補回 `$`。CLAUDE.md 寫了「改到 format.js 後先跑 `npm test`」，這次顯然沒跑，可以考慮讓 hook 或 commit 前的檢查自動跑測試。
+
+- [x] **2.【高】存檔後自動格式化的 hook 跟現有程式碼風格衝突**（2026-09-20 完成）
+      **處理結果：** 新增 `.prettierrc`：`semi: false`、`singleQuote: true`、`printWidth: 100`，並為 `*.css` 覆寫成 `singleQuote: false`（`@import "tailwindcss"` 與 `@theme` 的字型名稱在 CSS 裡維持雙引號）。`npx prettier --check src` 全部通過。過程中有兩個檔案被重新排版（純格式、行為不變）：`AppHeader.vue:39` 的筆數那行被 Prettier 改成保留空白用的 `>` 斷行寫法（覺得難讀的話可以在上面加 `<!-- prettier-ignore -->` 還原）、`RecordForm.vue:40` 的 `watch(...)` 從展開式收合成 callback 貼在同一行。
+      `.claude/hooks/format-edited-file.mjs` 會對每個被 Edit／Write 的檔案跑 Prettier，但專案裡**沒有 Prettier 設定檔**（`prettier --find-config-path` 找不到），所以會套預設值：雙引號、加分號、一行 80 字。`prettier --check src` 的 18 個檔案裡有 17 個不合格。唯一通過的 `src/hook-test.js` 正好是雙引號加分號，也就是被 hook 格式化過的樣子。下次用 Claude 改任何檔案，整個檔案都會被重排，真正的改動會淹沒在 diff 裡。
+      → 建議：加一份 `.prettierrc`（單引號、不加分號、一行大約 100 字），先確認現有 17 個檔案跑 `--check` 能全部通過再啟用。CLAUDE.md 也補一句程式碼風格。
+
+- [ ] **3.【高】專案內建的 `commit-message` skill 跟 CLAUDE.md 的 commit 格式互相矛盾**
+      `.claude/skills/commit-message/SKILL.md:8-32` 規定 `feat: 描述`（英文型別加半形冒號），範例是 `fix: 刪除改用 id…`。CLAUDE.md 則寫明「功能名稱：簡短描述」、「不要加 `feat:` `fix:` 這類英文前綴」。使用者說要 commit 時會觸發這個 skill，照著寫就會違反 CLAUDE.md。
+      → 建議：skill 的格式與範例改成 CLAUDE.md 那一套，或讓 skill 直接引用 CLAUDE.md，不要留兩份。
+
+- [ ] **4.【中】day-17 之後的改動都沒有 commit，計畫檔也停在 06**
+      最後一個 commit 是 2026-08-22 的 `fd0a130`，`day-17` 到 `day-24` 整個目錄都還是 untracked。CLAUDE.md 要求「每完成一個功能、驗收通過後就 commit 一次」。DESIGN.md 拆分（08-23）、hooks、Vitest（09-15）都還沒進版控，所以第 1 條的 `$` 是哪一步弄掉的也查不到。`docs/plans/` 只到 06，這幾件事當時如果有走 Plan Mode，計畫檔就是漏存了（從 repo 看不出當時有沒有走）。
+      → 建議：依功能拆開補 commit，之後照規則一個功能一個 commit。
+
+- [ ] **5.【中】README.md 的目錄結構過期**
+      `README.md:41,53-58` 有這幾個地方跟現況不符：`style.css` 註記寫「只有 `@import "tailwindcss"`」（實際上還有 `@theme` token、focus ring 與 reduced-motion）、清單裡少了 `AppHeader.vue`、`MonthSwitcher` 寫「＋該月總額」（總額已搬到 AppHeader）、`RecordForm` 寫「bottom sheet」（現在是內嵌常駐）、`TabBar` 寫「底部分頁」（現在是頁面裡的索引標籤）、沒有連到 DESIGN.md。
+      → 建議：README 不要自己再抄一份目錄樹，直接連到 SPEC 第 6 節。
+
+- [ ] **6.【中】「匯出 JSON」在兩份文件裡都沒有結論**
+      TECH_CHOICE.md 第 139 和 150 行提議把它移進 v1，註明「待 SPEC 更新確認」。SPEC.md 第 343 到 349 行（第 8 節）仍然寫「尚未拍板、不列入 v1」，第 10 節也沒有任何一列處理這件事。TECH_CHOICE 已經指出 iOS Safari 會清掉七天沒造訪的 localStorage，這會直接推翻驗收條件 6，而主要使用情境就是用 iPhone。
+      → 建議：決定做或不做，把結論補進 SPEC 第 10 節，並更新 TECH_CHOICE 那一列的狀態。
+
+- [ ] **7.【中】DESIGN.md 說 token 跟 `@theme`「逐一對應」，實際上只有顏色和字型家族對得上**
+      DESIGN.md 第 262 行這麼宣稱，但 YAML 裡的字級（brand 15px、column-head 11px、total-display 48px 等）和間距 token 在 `src/style.css` 的 `@theme` 裡都沒有，程式碼用任意值散寫：`text-[0.6875rem] tracking-wider` 出現 4 次（`App.vue:120`、`RecordForm.vue:74`、`RecordList.vue:31`、`CategoryPieChart.vue:68`）、`text-[0.9375rem] tracking-[0.2em]` 在 `AppHeader.vue:20`。
+      → 建議：把用到兩次以上的字級收進 `@theme`（例如 `--text-column-head`）。如果不收，就把 DESIGN.md 那句改成實際的範圍。
+
+- [ ] **8.【低】`vite.config.js` 的註解跟事實不符**
+      第 9 到 10 行寫「被測的檔案不碰 DOM、不碰 localStorage」、「只跑純函式」，但 `useRecords.js` 會碰 localStorage，也不是純函式（測試裡是用 Map 假的；CLAUDE.md 的描述才是對的）。
+      → 建議：註解改成跟 CLAUDE.md 一致。
+
+- [ ] **9.【低】`style.css` 的註解讓人以為 CSS 已經關掉「捲到表單」的動畫**
+      `src/style.css:64-67` 說 `scroll-behavior` 會處理點清單列捲到表單的那段。但 `App.vue:55-58` 呼叫 `scrollIntoView` 時明確指定了 `behavior`，這種情況 CSS 的 `scroll-behavior` 不會生效，真正起作用的是 App.vue 自己讀的 `matchMedia`。如果有人照註解以為 CSS 已經處理好、把 App.vue 那段刪掉，DESIGN 的 A8 就會壞掉。
+      → 建議：改註解，寫清楚 JS 觸發的捲動要自己判斷。
+
+- [ ] **10.【低】DESIGN.md 的 R3 跟 R4 互相矛盾**
+      R4（第 488 行）說 `md:` 前綴只出現在三個地方，但 R3 要求的左右內距從 16 變 32px 本身就是 `md:px-8`（`App.vue:89`）。照 R4 的方法 grep 會找到第四處。
+      → 建議：R4 把頁面內距也列進去。
+
+- [ ] **11.【低】SPEC 決策紀錄有兩列已經被推翻，卻沒有標註**
+      `SPEC.md:395`（08-16「浮動新增按鈕只在記帳頁出現」）：08-22 已經把浮動按鈕整個拿掉了。`SPEC.md:398`（08-22）說「不再需要 `env(safe-area-inset-bottom)` 的墊高」，但 DESIGN 的 R7 和 `App.vue:89` 都還在用。其他被推翻的列（08-14 的橫條 2% 下限、08-16 的不去重）都有標註，只有這兩列沒有。另外 TECH_CHOICE.md 第 23 行（「只有一頁」）和第 40 行（「bottom sheet」）也停在 08-09 的狀態。
+      → 建議：比照既有做法，在新的那一列註明推翻了哪一列。TECH_CHOICE 開頭加一句「這份是 08-09 的評估快照」就好，內文不用改。
+
+- [ ] **12.【低】動到了舊天數的檔案（在 day-24 之外）**
+      git status 顯示 `day-10/money-note/CLAUDE.md` 被修改過，`day-3` 到 `day-6` 的 `claude-playground` 有檔案被刪除。CLAUDE.md 寫「不要回頭改舊天數的檔案」。
+      → 建議：確認是不是刻意的，不是的話就還原。
+
+## 二、重複的邏輯
+
+- [ ] **13.【中】「從 date 取出月份」寫在 format.js 以外的地方**
+      `useRecords.js:37` 自己用 `record.date.slice(0, 7)` 切月份。但 `format.js:5` 寫明「這條規則只寫在這個檔案裡，其他地方一律呼叫這些函式，不要自己組」。這正好是 CLAUDE.md 三個地雷中第 1、2 條的核心。
+      → 建議：在 format.js 加 `monthKeyOfDate(date)` 並補測試，useRecords 改成呼叫它。
+
+- [ ] **14.【低】reduced-motion 判斷寫了兩份，而且寫法不同**
+      `App.vue:49` 保留 MediaQueryList，每次捲動時才讀 `.matches`，會跟著設定即時變動。`CategoryPieChart.vue:35` 則在 setup 時讀一次就固定下來。
+      → 建議：抽成一個小函式（例如 `prefersReducedMotion()`），兩邊都在要用的時候才呼叫。
+
+- [ ] **15.【低】空狀態卡片的 class 一字不差寫了兩次**
+      `App.vue:132` 和 `StatsPanel.vue:24` 都是 `mt-3 rounded-sm border border-rule bg-card px-6 py-14 text-center text-sm text-ink-soft`。DESIGN 本來就把 empty-state 定義成一個元件。
+      → 建議：抽成 `EmptyState.vue`，文案用 slot 傳進去。
+
+- [ ] **16.【低】帳冊表格的骨架在兩個元件各寫一份**
+      `RecordList.vue:29-37` 和 `CategoryPieChart.vue:66-73` 的欄頭列、金額欄的 `border-l border-rule pl-3 text-right`、列分隔線 `border-b border-rule-soft` 都是手動保持一致。DESIGN 要求兩張表「用同一套骨架」。
+      → 建議：先把欄頭和金額欄的 class 收成 `@utility` 或共用常數。等出現第三張表再考慮抽元件。
+
+- [ ] **17.【低】重設表單有三條路徑，觸發方式各不相同**
+      `App.vue:61-80`：`cancelEdit` 靠 `record` 變成 null 觸發，新增模式存檔靠 `resetKey + 1`，編輯存檔和刪除則兩個一起改。同一段「為什麼需要 resetKey」的說明在 `App.vue:32-33` 和 `RecordForm.vue:9-10` 各寫一次。
+      → 建議：改成 RecordForm 用 `defineExpose({ reset })`，由父層明確呼叫，拿掉計數器。
+
+- [ ] **18.【低】分頁 id 的字串散在兩個檔案**
+      `TabBar.vue:9-12` 定義了 `'records'`／`'stats'`，`App.vue:26,107,143` 又直接寫一次字串。打錯字不會報錯，只會讓整頁變空白。
+      → 建議：`TABS` 移到 `constants/` 並 export，App 改用常數比對。
+
+- [ ] **19.【低】其他小的重複**
+      `MonthSwitcher.vue:19,36` 兩顆箭頭按鈕的 class 完全相同；`useRecords.js:77-78,86-87` 的 `findIndex` 加 `-1` 防呆寫了兩次；`categories.js:21-22` 和 `stats.js:16` 從 `CATEGORIES` 各自建了三個 Map。
+      → 建議：順手整理時一起收，不需要單獨處理。
+
+## 三、不一致的寫法
+
+- [x] **20.【低】`src/hook-test.js` 是測試 hook 時留下的檔案**（2026-09-20 完成，跟著第 2 條一起刪掉）
+      沒有任何地方 import 它。它是全專案唯一用雙引號加分號的檔案，也不在 SPEC 第 6 節的檔案結構裡。從 day-22 開始每次複製快照都跟著複製過來。
+      → 建議：刪除。
+
+- [ ] **21.【低】畫面上「紀錄」和「記錄」混用**
+      用「紀錄」的有 `App.vue:120`「最近紀錄」、`RecordForm.vue:75`「編輯紀錄／新增紀錄」；用「記錄」的有 `App.vue:134`「還沒有記錄」，SPEC 全文也用「記錄」。
+      → 建議：統一成跟 SPEC 一樣的「記錄」。
+
+- [ ] **22.【低】按鈕的樣式狀態沒有照 DESIGN 的按鈕表做齊**
+      DESIGN.md 第 448 行寫「按下去的回饋一律用 `active:bg-rule-soft`」，但「取消編輯」（`RecordForm.vue:82`）、二次確認的「取消」（`:199`）與「刪除」（`:206`）都沒有。另外，二次確認的「取消」在 DESIGN 裡歸為 `button-secondary`（`ink-soft` 字），程式碼卻沒加 `text-ink-soft`，所以顯示成 `ink` 色。
+      → 建議：對照 DESIGN 的按鈕表逐顆補齊。長期可以把 6 種按鈕樣式收成 `@utility`。
+
+- [ ] **23.【低】兩個分頁的元件結構不對稱**
+      記帳頁的「支出明細」標題和空狀態寫在 `App.vue:118-136`，統計頁的對應內容則寫在 `StatsPanel.vue` 裡。記帳頁有兩層標題（小標籤加 h2），統計頁只有 h2。
+      → 建議：新增 `RecordsPanel.vue` 跟 StatsPanel 對稱，App.vue 只負責組裝和切換分頁。
+
+- [ ] **24.【低】「所有數字一律用 `font-mono`」這條沒有套到每個數字**
+      DESIGN.md 第 346 行有這條規則，但 `AppHeader.vue:39` 的筆數只加了 `tabular-nums`，沒有 `font-mono`。
+      → 建議：補上 `font-mono`，或者在 DESIGN 裡把筆數列為跟月份標籤一樣的例外。
+
+- [ ] **25.【低】圓餅圖描邊色直接寫 hex**
+      `CategoryPieChart.vue:28` 的 `'#FFFDF8'` 是 DESIGN 允許的例外，但它跟 `--color-card` 是同一個值，改 token 時不會跟著變（`index.html` 的 `theme-color` 也有同樣情況）。
+      → 建議：至少在 `style.css` 的 `--color-card` 旁註明「CategoryPieChart 和 index.html 也寫死了這個值」。
+
+- [ ] **26.【低】已經有檔案的目錄還留著空的 `.gitkeep`**
+      `src/components/`、`src/composables/`、`src/constants/`。
+      → 建議：刪除。
+
+## 四、過大的元件
+
+**沒有任何元件超過 300 行。** 最大的是 `RecordForm.vue`（215 行，其中大約 150 行是 template），其次是 `App.vue`（146 行）和 `CategoryPieChart.vue`（104 行）。
+
+- [ ] **27.【低／觀察】RecordForm 是最接近上限的一個**
+      它同時負責四件事：清理金額輸入、驗證、重新載入與聚焦、刪除的二次確認。SPEC 第 9 節提到的收入、帳戶等欄位一旦加進來，它會最先超過 300 行。
+      → 建議：現在不用動。真的要拆時，第一個可以拿出來的是刪除確認區塊（`:180-213`）。
+
+## 五、其他順手看到的（不在指定的三類裡，但也算技術債）
+
+- [ ] **28.【中】從 localStorage 讀進來時只檢查是不是陣列，沒有檢查每一筆**
+      `useRecords.js:10-17`：像 `[null]` 或缺少 `date` 的物件都能通過檢查，接著 `monthRecords` 執行 `record.date.slice` 時會丟 TypeError，整個 app 變白畫面。這正是 CLAUDE.md「不要讓整個 app 掛掉」想避免的情況，目前只擋住了 JSON.parse 失敗這一種。
+      → 建議：`load()` 時把欄位不齊的記錄濾掉，並補一條測試。
+
+- [ ] **29.【低】金額沒有位數上限**
+      `RecordForm.vue:28-30` 只過濾非數字字元。DESIGN 的 R1、R2（以及 `AppHeader.vue:42-46` 的註解）都說八位數是 375px 寬能放下的極限，超過就會出現水平捲動。超過 16 位數還會失去整數精度。
+      → 建議：輸入端限制位數，並寫進 SPEC 5.2 的欄位規則。
+
+- [ ] **30.【低】`save()` 沒有處理 `setItem` 丟出的例外**
+      `useRecords.js:19-21`：儲存空間滿了，或在某些隱私模式下，`setItem` 會丟例外。這時畫面已經更新，資料卻沒存進去，使用者也不會知道。
+      → 建議：用 try/catch 接住，並給使用者一個提示。
+
+---
+
+## 怎麼查的
+
+- 逐檔讀過 `src/` 全部程式碼、SPEC／DESIGN／CLAUDE／README／TECH_CHOICE、`docs/plans/05、06`、`.claude/` 底下的設定。
+- `npx vitest run`：57 條測試有 3 條失敗，都在 `format.test.js` 的 formatAmount。
+- `npx prettier --find-config-path`：找不到設定檔。`npx prettier --check src`：17 個檔案不合格。
+- 用 `diff -rq` 比對 day-23 和 day-24：兩者內容相同。又用 grep 查了 day-13 到 day-22 的 `formatAmount`，確認 day-22 以前都還有 `$`。

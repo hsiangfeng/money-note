@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/*
+  Tailwind v4 的自訂 token 寫在 CSS 裡，不建 tailwind.config.js。
+  這裡定義的每一個 --color-* 都會長出對應的 bg- / text- / border- utility。
+
+  視覺方向是「暖色紙本帳冊」：紙底、墨字、帳冊線。
+  沒有漸層、沒有玻璃效果、沒有彩色陰影 —— 層級一律靠線條粗細與紙／卡兩層底色差。
+*/
+@theme {
+  --color-paper: #f3efe7; /* 頁面背景 */
+  --color-card: #fffdf8; /* 卡片、表單、明細底 */
+  --color-ink: #1f2925; /* 主要文字、合計雙線 */
+  --color-ink-soft: #56625c; /* 次要文字、欄頭、標籤 */
+  --color-ledger: #245c4a; /* 主要動作：存檔、已選分類、目前分頁、focus ring */
+  --color-clay: #9a4f20; /* 重點：本月總支出那個數字 */
+  --color-alert: #962e2e; /* 只給刪除，不做他用 */
+  --color-rule: #dcd5c8; /* 帳冊線 */
+  --color-rule-soft: #ebe5da; /* 明細列之間的細分隔線 */
+
+  /*
+    帳冊線用實色不用透明度：半透明的墨疊在紙上與疊在卡片上會變成兩種灰，
+    金額欄那條直線跨過卡片邊界時就接不起來。
+  */
+
+  /* 系統字，一律不載遠端字型。 */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC",
+    "Microsoft JhengHei", sans-serif;
+  /* 明體只給標題用。Georgia 排拉丁字，中文退到系統明體。 */
+  --font-title: Georgia, "Songti TC", "Noto Serif TC", "Source Han Serif TC", serif;
+  /* 金額一律走這組：字寬固定，明細的金額欄才對得成一直排。 */
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html {
+    /* iOS 橫置時不要自己放大字。 */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+    全站唯一的 focus 樣式，定義一次就好。
+    用 :focus-visible 不用 :focus —— 後者會讓滑鼠點按鈕也跳出框。
+  */
+  :focus-visible {
+    outline: 2px solid var(--color-ledger);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-clay) 20%, transparent);
+  }
+}
+
+/*
+  使用者在系統開了「減少動態效果」就一律停掉，不用每個元件各自判斷。
+  scroll-behavior 也要關 —— 點清單列會捲到表單，那段捲動同樣算動態效果。
+  （Chart.js 畫在 canvas 上，CSS 管不到，另外在元件裡讀 matchMedia。）
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
