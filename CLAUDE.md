@@ -32,10 +32,10 @@ npm test               # 單元測試（vitest run，跑完即結束，不進 wa
 
 **單元測試用 Vitest，只測算錢的邏輯，不測畫面。** `npm test` 跑的是 `vitest run`，跑完自動結束、不會停在 watch 模式等人。測試檔放在被測檔案旁邊：
 
-| 測試檔 | 守住的事 |
-|---|---|
-| `src/utils/stats.test.js` | 空月份回傳空陣列、同額分類退回 `CATEGORIES` 宣告順序（不受輸入順序影響）、百分比四捨五入到整數 |
-| `src/utils/format.test.js` | 金額千分位、月份 key 跨年加減、「今天」「本月」用當地時間不用 UTC |
+| 測試檔                               | 守住的事                                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `src/utils/stats.test.js`            | 空月份回傳空陣列、同額分類退回 `CATEGORIES` 宣告順序（不受輸入順序影響）、百分比四捨五入到整數         |
+| `src/utils/format.test.js`           | 金額千分位、月份 key 跨年加減、「今天」「本月」用當地時間不用 UTC                                      |
 | `src/composables/useRecords.test.js` | 歸屬月份看 `date` 不看 `createdAt`、該月總額與筆數、CRUD 後統計同步、`localStorage` 讀壞時收斂成空陣列 |
 
 環境是 node、不裝 jsdom，`localStorage` 在測試裡用 Map 假的。改到 `stats.js`、`format.js`、`useRecords.js` 之後先跑 `npm test`；新的計算邏輯要一起補測試，不要只補程式。
@@ -48,7 +48,14 @@ npm test               # 單元測試（vitest run，跑完即結束，不進 wa
 
 這裡的「驗收」指走過 SPEC.md 第 7 節中與該功能相關的驗收條件，不是「看起來沒壞」。
 
-只 commit，不 push。要推上去時由使用者決定。
+### 分支與 PR 流程
+
+`main` 是正式環境（push 進去就會部署到 GitHub Pages），`develop` 是開發環境。
+
+- **一律從 `develop` 開分支做改動**，做完 push 這個分支，再開 PR 合併回 `develop`。
+- **要上線時，另開一個 `develop` → `main` 的 PR。**
+- **不要直接 push 到 `develop` 或 `main`**，就算只改一行文件也一樣走 PR。
+- PR 會自動跑 `.github/workflows/test.yml`（`npm ci`、`npm test`、`npm run build`），CodeRabbit 也會用繁體中文審查；兩者都過了再合併。
 
 ### Plan Mode 的計畫要存檔
 
@@ -98,11 +105,11 @@ npm test               # 單元測試（vitest run，跑完即結束，不進 wa
 - **`src/utils/stats.js` 是統計計算的所在地，一律寫成純函式。** 吃一個記錄陣列、回傳結果，不碰 `localStorage`、不碰 Vue 的 `ref`。要算哪一段（哪個月）是 `useRecords.js` 的事，怎麼算是這個檔的事 —— 不要因為「順手」就把新的統計寫回 `useRecords.js` 的 computed 裡。
 - **以下套件是刻意不裝的，不要因為「方便」就補上：**
 
-  | 不裝 | 替代做法 |
-  |---|---|
-  | Vue Router | 只有兩個分頁，用一個 `ref` 切換；表單常駐在記帳頁上 |
-  | Pinia | 一個 composable 就夠 |
-  | day.js 等日期函式庫 | 只做「取月份」和「格式化」，原生 `Date` 足夠 |
+  | 不裝                | 替代做法                                            |
+  | ------------------- | --------------------------------------------------- |
+  | Vue Router          | 只有兩個分頁，用一個 `ref` 切換；表單常駐在記帳頁上 |
+  | Pinia               | 一個 composable 就夠                                |
+  | day.js 等日期函式庫 | 只做「取月份」和「格式化」，原生 `Date` 足夠        |
 
 - **圖表用 Chart.js + vue-chartjs**（2026-08-16 翻掉原本「不裝圖表函式庫」的決定，見 SPEC 第 10 節）。只註冊 `ArcElement`，Tooltip 與 Legend 刻意不註冊 —— 資料全在圓餅圖旁的文字明細裡（無障礙的要求見 DESIGN.md 的 A7）。
 - 元件一律用 `<script setup>` Composition API。

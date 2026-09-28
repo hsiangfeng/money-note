@@ -1,0 +1,36 @@
+name: 測試與建置
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+# 同一個 PR 推了新 commit，就把舊的那輪取消，只跑最新的
+concurrency:
+  group: test-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: 測試與建置
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出程式碼
+        uses: actions/checkout@v7
+
+      - name: 安裝 Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: 安裝相依套件
+        run: npm ci
+
+      - name: 跑單元測試
+        run: npm test
+
+      - name: 建置 dist
+        run: npm run build

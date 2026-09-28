@@ -1,0 +1,11 @@
+# CodeRabbit 設定：https://docs.coderabbit.ai/getting-started/yaml-configuration
+language: zh-TW
+
+reviews:
+  auto_review:
+    enabled: true
+    # 預設只審合併進預設分支（main）的 PR；加上 develop，功能分支合回 develop 時也會審
+    # main 也明列，之後就算把預設分支改成 develop，上線 PR 一樣會被審
+    base_branches:
+      - develop
+      - main
