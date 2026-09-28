@@ -4,7 +4,7 @@
 > 原始盤點：[plans/07-技術債盤點.md](./plans/07-技術債盤點.md)
 
 `07-技術債盤點.md` 是盤點當下的快照，存檔後不再更動；**後續的進度只更新這一份。**
-30 條裡**已完成 3 條**（第 2、20 條，2026-09-20；第 1 條，2026-09-21），其餘未處理。順序不代表要照著做。
+30 條裡**已完成 4 條**（第 2、20 條，2026-09-20；第 1 條，2026-09-21；第 26 條，2026-09-28），其餘未處理。順序不代表要照著做。
 
 **嚴重程度**
 
@@ -124,7 +124,8 @@
       `CategoryPieChart.vue:28` 的 `'#FFFDF8'` 是 DESIGN 允許的例外，但它跟 `--color-card` 是同一個值，改 token 時不會跟著變（`index.html` 的 `theme-color` 也有同樣情況）。
       → 建議：至少在 `style.css` 的 `--color-card` 旁註明「CategoryPieChart 和 index.html 也寫死了這個值」。
 
-- [ ] **26.【低】已經有檔案的目錄還留著空的 `.gitkeep`**
+- [x] **26.【低】已經有檔案的目錄還留著空的 `.gitkeep`**（2026-09-28 完成）
+      **處理結果：** 刪掉 `src/components/`、`src/composables/`、`src/constants/` 三個 `.gitkeep`。三個目錄都已經有被追蹤的檔案，刪了不會讓目錄消失；`npm test` 與 `npm run build` 都通過。
       `src/components/`、`src/composables/`、`src/constants/`。
       → 建議：刪除。
 
